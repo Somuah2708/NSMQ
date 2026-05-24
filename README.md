@@ -25,7 +25,9 @@ React Native (Expo) app for NSMQ practice, announcements, shared entries, leader
 
 - Entry Hub reads/writes from public.entry_posts.
 - Leaderboard reads from public.leaderboard_scores.
+- Practice Day+Subject pages read/write from public.practice_day_subject_notes.
 - Entry creation requires signed-in Supabase users and stores user_id with each post.
+- Practice content creation requires signed-in Supabase users and stores user_id with each note.
 
 If env variables are missing or Supabase is unreachable, the app gracefully falls back to local in-memory data.
 
