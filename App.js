@@ -5,13 +5,13 @@ import {
   Linking,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native'
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
@@ -319,7 +319,15 @@ const getUserDisplayName = (user) => {
 }
 
 export default function App() {
-  // ...existing code...
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
+  )
+}
+
+function AppContent() {
+  const insets = useSafeAreaInsets()
   const [activePage, setActivePage] = useState('home')
   const [selectedDay, setSelectedDay] = useState(practiceDays[0].id)
   const [openedPracticeDayId, setOpenedPracticeDayId] = useState(null)
@@ -1202,10 +1210,10 @@ export default function App() {
   ]
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.bgTop} />
       <View style={styles.bgBottom} />
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 110 + insets.bottom }]}>
         <View style={styles.headerCard}>
           <Text style={styles.eyebrow}>ACHIMOTA NSMQ APP</Text>
           <Text style={styles.h1}>{pageHeading[activePage]}</Text>
@@ -2477,7 +2485,7 @@ export default function App() {
         )}
       </ScrollView>
 
-      <View style={styles.bottomNav}>
+      <View style={[styles.bottomNav, { bottom: 12 + insets.bottom }]}>
         {navigationItems.map((item) => (
           <Pressable
             key={item.id}
@@ -2500,7 +2508,7 @@ export default function App() {
 
       {activePage === 'home' && (
         <Pressable
-          style={styles.fab}
+          style={[styles.fab, { bottom: 90 + insets.bottom }]}
           onPress={() => {
             if (showHomePostForm) {
               setShowHomePostForm(false)
@@ -2580,7 +2588,6 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 16,
-    paddingBottom: 110,
     gap: 12,
   },
   headerCard: {
@@ -3217,7 +3224,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 12,
     right: 12,
-    bottom: 12,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.96)',
     borderWidth: 1,
@@ -3265,7 +3271,6 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 90,
     right: 20,
     width: 54,
     height: 54,
