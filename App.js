@@ -1285,69 +1285,69 @@ function AppContent() {
               ))}
             </View>
 
-            <View style={styles.homeSectionCard}>
-              <View style={styles.homeSectionTitleRow}>
-                <Text style={styles.homeSectionTitle}>Community Posts</Text>
-                <Text style={styles.muted}>{homePosts.length} post{homePosts.length !== 1 ? 's' : ''}</Text>
-              </View>
+            {/* Full-page new post / assign task modal */}
+            <Modal
+              visible={showHomePostForm}
+              animationType="slide"
+              presentationStyle="pageSheet"
+              onRequestClose={() => { setShowHomePostForm(false); setHomeFormMode('post'); setAdminTaskStatus('') }}
+            >
+              <SafeAreaView style={styles.addPageSafe} edges={['top', 'left', 'right']}>
+                {/* Page header */}
+                <View style={styles.addPageHeader}>
+                  <Pressable
+                    style={styles.addPageBack}
+                    onPress={() => { setShowHomePostForm(false); setHomeFormMode('post'); setAdminTaskStatus('') }}
+                  >
+                    <Ionicons name="arrow-back" size={22} color="#0b2236" />
+                  </Pressable>
+                  <Text style={styles.addPageTitle}>
+                    {homeFormMode === 'task' ? 'Assign Task' : 'New Post'}
+                  </Text>
+                  <View style={{ width: 38 }} />
+                </View>
 
-              {showHomePostForm && (
-                <View style={styles.homePostFormCard}>
-                  <View style={styles.homePostFormHeader}>
-                    <Text style={styles.homeSectionTitle}>
-                      {homeFormMode === 'task' ? 'Assign Task' : 'New Post'}
-                    </Text>
-                    <Pressable onPress={() => { setShowHomePostForm(false); setHomeFormMode('post'); setAdminTaskStatus('') }}>
-                      <Ionicons name="close" size={22} color="#36536b" />
-                    </Pressable>
+                {/* Admin mode toggle */}
+                {isAdmin && (
+                  <View style={styles.addPageModeRow}>
+                    {['post', 'task'].map((mode) => (
+                      <Pressable
+                        key={mode}
+                        style={[styles.addPageModePill, homeFormMode === mode && styles.addPageModePillActive]}
+                        onPress={() => { setHomeFormMode(mode); setAdminTaskStatus('') }}
+                      >
+                        <Ionicons
+                          name={mode === 'task' ? 'checkbox-outline' : 'megaphone-outline'}
+                          size={15}
+                          color={homeFormMode === mode ? '#fff' : '#36536b'}
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text style={[styles.addPageModeText, homeFormMode === mode && styles.addPageModeTextActive]}>
+                          {mode === 'task' ? 'Assign Task' : 'Post'}
+                        </Text>
+                      </Pressable>
+                    ))}
                   </View>
+                )}
 
-                  {/* Admin mode toggle */}
-                  {isAdmin && (
-                    <View style={styles.homeFormModeRow}>
-                      {['post', 'task'].map((mode) => (
-                        <Pressable
-                          key={mode}
-                          style={[styles.homeFormModePill, homeFormMode === mode && styles.homeFormModePillActive]}
-                          onPress={() => { setHomeFormMode(mode); setAdminTaskStatus('') }}
-                        >
-                          <Ionicons
-                            name={mode === 'task' ? 'checkbox-outline' : 'megaphone-outline'}
-                            size={13}
-                            color={homeFormMode === mode ? '#fff' : '#36536b'}
-                            style={{ marginRight: 5 }}
-                          />
-                          <Text style={[styles.homeFormModeText, homeFormMode === mode && styles.homeFormModeTextActive]}>
-                            {mode === 'task' ? 'Assign Task' : 'Post'}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  )}
-
+                <ScrollView contentContainerStyle={styles.addPageScroll} keyboardShouldPersistTaps="handled">
                   {homeFormMode === 'post' ? (
-                    <>
+                    <View style={styles.addPageCard}>
+                      <Text style={styles.addPageSectionLabel}>Category</Text>
                       <View style={styles.homePostCategoryRow}>
                         {['Announcement', 'Update', 'Trial Notice', 'Reminder'].map((cat) => (
                           <Pressable
                             key={cat}
-                            style={[
-                              styles.homePostCategoryPill,
-                              homePostForm.category === cat && styles.homePostCategoryPillActive,
-                            ]}
+                            style={[styles.homePostCategoryPill, homePostForm.category === cat && styles.homePostCategoryPillActive]}
                             onPress={() => setHomePostForm((prev) => ({ ...prev, category: cat }))}
                           >
-                            <Text
-                              style={[
-                                styles.homePostCategoryText,
-                                homePostForm.category === cat && styles.homePostCategoryTextActive,
-                              ]}
-                            >
+                            <Text style={[styles.homePostCategoryText, homePostForm.category === cat && styles.homePostCategoryTextActive]}>
                               {cat}
                             </Text>
                           </Pressable>
                         ))}
                       </View>
+
                       <Input
                         label="What's happening?"
                         value={homePostForm.content}
@@ -1355,6 +1355,7 @@ function AppContent() {
                         placeholder="Share an update, announcement, or notice with the squad..."
                         multiline
                       />
+
                       {homePostForm.imageUri ? (
                         <View style={styles.postImagePreviewWrap}>
                           <Image
@@ -1366,27 +1367,33 @@ function AppContent() {
                             style={styles.postImageRemoveBtn}
                             onPress={() => setHomePostForm((prev) => ({ ...prev, imageUri: null }))}
                           >
-                            <Ionicons name="close-circle" size={24} color="#fff" />
+                            <Ionicons name="close-circle" size={26} color="#fff" />
                           </Pressable>
                         </View>
                       ) : null}
+
                       <Pressable style={styles.postImagePickerBtn} onPress={pickPostImage}>
-                        <Ionicons name="image-outline" size={17} color="#0f4c5c" />
+                        <Ionicons name="image-outline" size={18} color="#0f4c5c" />
                         <Text style={styles.postImagePickerBtnText}>
                           {homePostForm.imageUri ? 'Change Thumbnail' : 'Add Thumbnail'}
                         </Text>
                       </Pressable>
+
                       {homePostStatus ? <Text style={styles.muted}>{homePostStatus}</Text> : null}
-                      <Pressable style={styles.button} onPress={publishHomePost}>
+
+                      <Pressable style={styles.addPageSubmitBtn} onPress={publishHomePost}>
                         {isSyncingHomePosts ? (
-                          <ActivityIndicator size="small" color="#1f2937" />
+                          <ActivityIndicator size="small" color="#fff" />
                         ) : (
-                          <Text style={styles.buttonText}>Post to Homepage</Text>
+                          <>
+                            <Ionicons name="send-outline" size={17} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.addPageSubmitText}>Post to Homepage</Text>
+                          </>
                         )}
                       </Pressable>
-                    </>
+                    </View>
                   ) : (
-                    <>
+                    <View style={styles.addPageCard}>
                       <Input
                         label="Task Title"
                         value={adminTaskForm.title}
@@ -1423,20 +1430,30 @@ function AppContent() {
                         onChangeText={(v) => setAdminTaskForm((p) => ({ ...p, dueDate: v }))}
                         placeholder="e.g. Jun 15, 2026"
                       />
-                      {adminTaskStatus ? <Text style={styles.muted}>{adminTaskStatus}</Text> : null}
-                      <Pressable style={styles.button} onPress={publishAdminTask}>
+                      {adminTaskStatus ? <Text style={[styles.muted, { marginTop: 4 }]}>{adminTaskStatus}</Text> : null}
+                      <Pressable style={styles.addPageSubmitBtn} onPress={publishAdminTask}>
                         {isPublishingAdminTask ? (
-                          <ActivityIndicator size="small" color="#1f2937" />
+                          <ActivityIndicator size="small" color="#fff" />
                         ) : (
-                          <Text style={styles.buttonText}>Assign to All Users</Text>
+                          <>
+                            <Ionicons name="people-outline" size={17} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.addPageSubmitText}>Assign to All Users</Text>
+                          </>
                         )}
                       </Pressable>
-                    </>
+                    </View>
                   )}
-                </View>
-              )}
+                </ScrollView>
+              </SafeAreaView>
+            </Modal>
 
-              {homePosts.length === 0 && !showHomePostForm ? (
+            <View style={styles.homeSectionCard}>
+              <View style={styles.homeSectionTitleRow}>
+                <Text style={styles.homeSectionTitle}>Community Posts</Text>
+                <Text style={styles.muted}>{homePosts.length} post{homePosts.length !== 1 ? 's' : ''}</Text>
+              </View>
+
+              {homePosts.length === 0 ? (
                 <Text style={styles.muted}>No community posts yet. Tap + to be the first to post.</Text>
               ) : (
                 homePosts.map((post) => (
@@ -3717,6 +3734,99 @@ const styles = StyleSheet.create({
     color: '#36536b',
     fontSize: 12,
     fontWeight: '700',
+  },
+  addPageSafe: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  addPageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(46,72,97,0.12)',
+  },
+  addPageBack: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(46,72,97,0.07)',
+  },
+  addPageTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0b2236',
+  },
+  addPageModeRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(46,72,97,0.08)',
+  },
+  addPageModePill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(46,72,97,0.28)',
+    borderRadius: 999,
+    paddingVertical: 9,
+    backgroundColor: '#fff',
+  },
+  addPageModePillActive: {
+    backgroundColor: '#0f4c5c',
+    borderColor: '#0f4c5c',
+  },
+  addPageModeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#36536b',
+  },
+  addPageModeTextActive: {
+    color: '#fff',
+  },
+  addPageScroll: {
+    padding: 16,
+    paddingBottom: 40,
+    gap: 14,
+  },
+  addPageCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(46,72,97,0.12)',
+  },
+  addPageSectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#36536b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  addPageSubmitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0f4c5c',
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginTop: 4,
+  },
+  addPageSubmitText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '800',
   },
   lbModalOverlay: {
     flex: 1,
