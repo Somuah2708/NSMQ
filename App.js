@@ -41,50 +41,6 @@ const navigationItems = [
   },
 ]
 
-const upcomingTrials = [
-  {
-    title: 'Achimota Internal Trial Round 5',
-    date: 'Jun 4, 2026',
-    time: '3:30 PM',
-    venue: 'Science Resource Center',
-    focus: 'Physics and Current Affairs',
-  },
-  {
-    title: 'Inter-House NSMQ Simulation',
-    date: 'Jun 11, 2026',
-    time: '4:00 PM',
-    venue: 'Main Hall',
-    focus: 'Biology and Mathematics',
-  },
-  {
-    title: 'Rapid Buzzing Drill',
-    date: 'Jun 18, 2026',
-    time: '2:45 PM',
-    venue: 'Library Annex',
-    focus: 'Speed and confidence',
-  },
-]
-
-const announcements = [
-  'Team jerseys will be distributed after prep on Tuesday.',
-  'All contestants must submit updated NSMQ reading logs by Friday.',
-  'Mock quarter-final pairings will be posted 24 hours before the event.',
-]
-
-const fixtures = [
-  {
-    event: 'Greater Accra NSMQ Warm-Up',
-    date: 'Jun 25, 2026',
-    opponent: 'PRESEC and Mfantsipim',
-    target: 'Round 1 sweep',
-  },
-  {
-    event: 'Regional Friendly Contest',
-    date: 'Jul 3, 2026',
-    opponent: 'Wesley Girls and Adisadel',
-    target: 'Question-bank testing',
-  },
-]
 
 const dayNamesToTwenty = [
   'Zero',
@@ -1211,11 +1167,16 @@ function AppContent() {
     profile: 'Progress Tracking and Growth Overview',
   }
 
-  const nextFixture = fixtures[0]
+  const trialPosts    = homePosts.filter((p) => p.category === 'Trial Notice')
+  const announcePosts = homePosts.filter((p) => p.category === 'Announcement')
+  const fixturePosts  = homePosts.filter((p) => p.category === 'Fixture')
+  const communityPosts = homePosts.filter((p) => !['Trial Notice', 'Announcement', 'Fixture'].includes(p.category))
+  const nextFixture   = fixturePosts[0] ?? null
+
   const quickStats = [
-    { label: 'Upcoming Trials', value: upcomingTrials.length },
-    { label: 'Community Posts', value: homePosts.length },
-    { label: 'Upcoming Fixtures', value: fixtures.length },
+    { label: 'Upcoming Trials', value: trialPosts.length },
+    { label: 'Community Posts', value: communityPosts.length },
+    { label: 'Upcoming Fixtures', value: fixturePosts.length },
   ]
 
   return (
@@ -1250,48 +1211,72 @@ function AppContent() {
 
               <View style={styles.fixtureSpotlight}>
                 <Text style={styles.fixtureSpotlightLabel}>Next Fixture Spotlight</Text>
-                <Text style={styles.fixtureSpotlightTitle}>{nextFixture.event}</Text>
-                <Text style={styles.fixtureSpotlightMeta}>{nextFixture.date}</Text>
-                <Text style={styles.fixtureSpotlightMeta}>Opponents: {nextFixture.opponent}</Text>
+                {nextFixture ? (
+                  <>
+                    <Text style={styles.fixtureSpotlightTitle}>{nextFixture.content}</Text>
+                    <Text style={styles.fixtureSpotlightMeta}>{nextFixture.date} · By {nextFixture.author}</Text>
+                  </>
+                ) : (
+                  <Text style={styles.fixtureSpotlightMeta}>No upcoming fixtures yet. Tap + to add one.</Text>
+                )}
               </View>
             </View>
 
             <View style={styles.homeSectionCard}>
-              <Text style={styles.homeSectionTitle}>Upcoming NSMQ Trials</Text>
-              {upcomingTrials.map((trial) => (
-                <View key={trial.title} style={styles.homeItemCard}>
-                  <View style={styles.homeItemTopRow}>
-                    <Text style={styles.h3}>{trial.title}</Text>
-                    <Text style={styles.homePill}>{trial.date}</Text>
-                  </View>
-                  <Text style={styles.text}>{trial.time} | {trial.venue}</Text>
-                  <Text style={styles.focus}>Focus: {trial.focus}</Text>
-                </View>
-              ))}
+              <View style={styles.homeSectionTitleRow}>
+                <Text style={styles.homeSectionTitle}>Upcoming NSMQ Trials</Text>
+                <Text style={styles.muted}>{trialPosts.length}</Text>
+              </View>
+              {trialPosts.length === 0 ? (
+                <Text style={styles.muted}>No trials posted yet. Tap + to add one.</Text>
+              ) : (
+                trialPosts.map((post) => (
+                  <HomeSectionPostCard
+                    key={post.id}
+                    post={post}
+                    canDelete={isAdmin || (currentUser && currentUser.id === post.userId)}
+                    onDelete={() => deleteHomePost(post.id)}
+                  />
+                ))
+              )}
             </View>
 
             <View style={styles.homeSectionCard}>
-              <Text style={styles.homeSectionTitle}>Announcements</Text>
-              {announcements.map((item) => (
-                <View key={item} style={styles.announcementRow}>
-                  <View style={styles.announcementDot} />
-                  <Text style={styles.announcementText}>{item}</Text>
-                </View>
-              ))}
+              <View style={styles.homeSectionTitleRow}>
+                <Text style={styles.homeSectionTitle}>Announcements</Text>
+                <Text style={styles.muted}>{announcePosts.length}</Text>
+              </View>
+              {announcePosts.length === 0 ? (
+                <Text style={styles.muted}>No announcements yet. Tap + to add one.</Text>
+              ) : (
+                announcePosts.map((post) => (
+                  <HomeSectionPostCard
+                    key={post.id}
+                    post={post}
+                    canDelete={isAdmin || (currentUser && currentUser.id === post.userId)}
+                    onDelete={() => deleteHomePost(post.id)}
+                  />
+                ))
+              )}
             </View>
 
             <View style={styles.homeSectionCard}>
-              <Text style={styles.homeSectionTitle}>Events and Fixtures</Text>
-              {fixtures.map((fixture) => (
-                <View key={fixture.event} style={styles.homeItemCard}>
-                  <View style={styles.homeItemTopRow}>
-                    <Text style={styles.h3}>{fixture.event}</Text>
-                    <Text style={styles.homePill}>{fixture.date}</Text>
-                  </View>
-                  <Text style={styles.text}>Against: {fixture.opponent}</Text>
-                  <Text style={styles.focus}>Target: {fixture.target}</Text>
-                </View>
-              ))}
+              <View style={styles.homeSectionTitleRow}>
+                <Text style={styles.homeSectionTitle}>Events and Fixtures</Text>
+                <Text style={styles.muted}>{fixturePosts.length}</Text>
+              </View>
+              {fixturePosts.length === 0 ? (
+                <Text style={styles.muted}>No events posted yet. Tap + to add one.</Text>
+              ) : (
+                fixturePosts.map((post) => (
+                  <HomeSectionPostCard
+                    key={post.id}
+                    post={post}
+                    canDelete={isAdmin || (currentUser && currentUser.id === post.userId)}
+                    onDelete={() => deleteHomePost(post.id)}
+                  />
+                ))
+              )}
             </View>
 
             {/* Full-page new post / assign task modal */}
@@ -1344,7 +1329,7 @@ function AppContent() {
                     <View style={styles.addPageCard}>
                       <Text style={styles.addPageSectionLabel}>Category</Text>
                       <View style={styles.homePostCategoryRow}>
-                        {['Announcement', 'Update', 'Trial Notice', 'Reminder'].map((cat) => (
+                        {['Announcement', 'Trial Notice', 'Fixture', 'Update', 'Reminder'].map((cat) => (
                           <Pressable
                             key={cat}
                             style={[styles.homePostCategoryPill, homePostForm.category === cat && styles.homePostCategoryPillActive]}
@@ -1459,13 +1444,13 @@ function AppContent() {
             <View style={styles.homeSectionCard}>
               <View style={styles.homeSectionTitleRow}>
                 <Text style={styles.homeSectionTitle}>Community Posts</Text>
-                <Text style={styles.muted}>{homePosts.length} post{homePosts.length !== 1 ? 's' : ''}</Text>
+                <Text style={styles.muted}>{communityPosts.length} post{communityPosts.length !== 1 ? 's' : ''}</Text>
               </View>
 
-              {homePosts.length === 0 ? (
+              {communityPosts.length === 0 ? (
                 <Text style={styles.muted}>No community posts yet. Tap + to be the first to post.</Text>
               ) : (
-                homePosts.map((post) => (
+                communityPosts.map((post) => (
                   <View key={post.id} style={styles.homePostCard}>
                     {post.imageUrl ? (
                       <Image
@@ -2563,6 +2548,27 @@ function AppContent() {
   )
 }
 
+function HomeSectionPostCard({ post, canDelete, onDelete }) {
+  return (
+    <View style={styles.homeSectionPost}>
+      {post.imageUrl ? (
+        <Image source={{ uri: post.imageUrl }} style={styles.homeSectionPostImage} resizeMode="cover" />
+      ) : null}
+      <View style={styles.homeSectionPostBody}>
+        <View style={styles.homeItemTopRow}>
+          <Text style={styles.muted}>{post.date} · {post.author}</Text>
+          {canDelete && (
+            <Pressable onPress={onDelete} hitSlop={8} style={styles.postDeleteBtn}>
+              <Ionicons name="trash-outline" size={14} color="#e63946" />
+            </Pressable>
+          )}
+        </View>
+        <Text style={styles.text}>{post.content}</Text>
+      </View>
+    </View>
+  )
+}
+
 function Card({ title, children }) {
   return (
     <View style={styles.card}>
@@ -3405,6 +3411,21 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 6,
     backgroundColor: 'rgba(230,57,70,0.08)',
+  },
+  homeSectionPost: {
+    borderWidth: 1,
+    borderColor: 'rgba(20,92,132,0.14)',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#fefefe',
+  },
+  homeSectionPostImage: {
+    width: '100%',
+    height: 160,
+  },
+  homeSectionPostBody: {
+    padding: 10,
+    gap: 5,
   },
   postImagePreviewWrap: {
     width: '100%',
