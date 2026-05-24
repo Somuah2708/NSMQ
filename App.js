@@ -13,10 +13,12 @@ import {
 } from 'react-native'
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as ImagePicker from 'expo-image-picker'
+import * as DocumentPicker from 'expo-document-picker'
+import * as FileSystem from 'expo-file-system/legacy'
 import Ionicons from '@expo/vector-icons/Ionicons'
-import { isSupabaseConfigured, supabase } from './lib/supabase'
+import { isSupabaseConfigured, supabase, supabaseUrl, supabaseAnonKey } from './lib/supabase'
 
-const ADMIN_EMAILS = ['admin@email.com']
+const ADMIN_EMAILS = ['kwesisomuah2000@gmail.com']
 
 const navigationItems = [
   { id: 'home', label: 'Home', icon: 'home-outline', iconActive: 'home' },
@@ -117,20 +119,20 @@ const practiceDays = Array.from({ length: 40 }, (_, index) => {
 
 const fallbackLeaderboardData = [
   // Main category
-  { student: 'Fabian Kudoto', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'main' },
-  { student: 'Norbert Adusei', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'main' },
-  { student: 'Emmanuel Akormedie', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'main' },
-  { student: 'Princess Amedzro', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'main' },
-  { student: 'Japheth Nii Boye', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'main' },
-  { student: 'Michael Danso', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'main' },
-  { student: 'Hilarious Bansah', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'main' },
-  { student: 'Prince Gewalk Martins', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'main' },
+  { student: 'Fabian Kudoto', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'main' },
+  { student: 'Norbert Adusei', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'main' },
+  { student: 'Emmanuel Akormedie', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'main' },
+  { student: 'Princess Amedzro', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'main' },
+  { student: 'Japheth Nii Boye', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'main' },
+  { student: 'Michael Danso', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'main' },
+  { student: 'Hilarious Bansah', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'main' },
+  { student: 'Prince Gewalk Martins', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'main' },
   // Substitute category
-  { student: 'Jovan Akuaku', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'substitute' },
-  { student: 'Vera Narh', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'substitute' },
-  { student: 'Ann Hanson', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'substitute' },
-  { student: 'George Frimpong', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'substitute' },
-  { student: 'Clifford Anum', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, category: 'substitute' },
+  { student: 'Jovan Akuaku', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'substitute' },
+  { student: 'Vera Narh', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'substitute' },
+  { student: 'Ann Hanson', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'substitute' },
+  { student: 'George Frimpong', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'substitute' },
+  { student: 'Clifford Anum', overall: 0, Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0, contests: 0, category: 'substitute' },
 ]
 
 const initialEntries = [
@@ -223,7 +225,10 @@ const RESOURCE_SUBJECTS = [
   { name: 'Biology', icon: 'leaf-outline', color: '#2d6a4f' },
   { name: 'Mathematics', icon: 'calculator-outline', color: '#fb8500' },
 ]
-const RESOURCE_TYPES = ['PDF', 'Book', 'Document', 'Video', 'Link', 'Notes']
+const RESOURCE_TYPES = ['PDF', 'Book', 'Document', 'Video', 'Image', 'Link', 'Notes']
+
+const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
+
 
 const formatEntryDate = (rawDate) => {
   if (!rawDate) return ''
@@ -244,16 +249,24 @@ const mapSupabaseEntry = (entry) => ({
   date: formatEntryDate(entry.created_at),
 })
 
-const mapSupabaseLeaderboard = (row) => ({
-  student: row.student,
-  overall: row.overall,
-  Physics: row.physics,
-  Chemistry: row.chemistry,
-  Biology: row.biology,
-  Mathematics: row.mathematics,
-  GK: row.gk,
-  category: row.category ?? 'main',
-})
+const mapSupabaseLeaderboard = (row) => {
+  const physics = row.physics ?? 0
+  const chemistry = row.chemistry ?? 0
+  const biology = row.biology ?? 0
+  const mathematics = row.mathematics ?? 0
+  const gk = row.gk ?? 0
+  return {
+    student: row.student,
+    overall: physics + chemistry + biology + mathematics + gk,
+    Physics: physics,
+    Chemistry: chemistry,
+    Biology: biology,
+    Mathematics: mathematics,
+    GK: gk,
+    contests: row.contests ?? 0,
+    category: row.category ?? 'main',
+  }
+}
 
 const mapSupabasePracticeRecord = (row) => ({
   id: row.id,
@@ -346,6 +359,10 @@ function AppContent() {
   const [showSymbolPicker, setShowSymbolPicker] = useState(false)
   const [symbolCategoryTab, setSymbolCategoryTab] = useState('maths')
   const [focusedPracticeField, setFocusedPracticeField] = useState('details')
+  const [dayOverrides, setDayOverrides] = useState({})
+  const [editingDayId, setEditingDayId] = useState(null)
+  const [dayEditForm, setDayEditForm] = useState({ topic: '', date: '' })
+  const [isSavingDayEdit, setIsSavingDayEdit] = useState(false)
   const [entryForm, setEntryForm] = useState({
     title: '',
     type: 'Question',
@@ -366,8 +383,12 @@ function AppContent() {
 
   const [resources, setResources] = useState([])
   const [expandedSubject, setExpandedSubject] = useState(null)
-  const [showResourceForm, setShowResourceForm] = useState(null)
+  const [openedSubject, setOpenedSubject] = useState(null)
+  const [resourceTypeFilter, setResourceTypeFilter] = useState('All')
+  const [showResourceForm, setShowResourceForm] = useState(false)
   const [resourceForm, setResourceForm] = useState({ title: '', url: '', fileType: 'Document', description: '' })
+  const [resourcePickedFile, setResourcePickedFile] = useState(null)
+  const [viewingResource, setViewingResource] = useState(null)
   const [isSyncingResources, setIsSyncingResources] = useState(false)
   const [resourceStatus, setResourceStatus] = useState('')
 
@@ -376,7 +397,7 @@ function AppContent() {
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [newLeaderboard, setNewLeaderboard] = useState({
     student: '',
-    overall: '',
+    contests: '',
     Physics: '',
     Chemistry: '',
     Biology: '',
@@ -396,11 +417,10 @@ function AppContent() {
     practiceDays[0]
 
   const sortedLeaderboard = useMemo(() => {
-    const metric = selectedSubject === 'overall' ? 'overall' : selectedSubject
     return [...leaderboardRows]
-      .sort((a, b) => b[metric] - a[metric])
+      .sort((a, b) => b.overall - a.overall)
       .map((student, index) => ({ ...student, position: index + 1 }))
-  }, [leaderboardRows, selectedSubject])
+  }, [leaderboardRows])
 
   const subjectAverages = useMemo(() => {
     if (leaderboardRows.length === 0) return { Physics: 0, Chemistry: 0, Biology: 0, Mathematics: 0, GK: 0 }
@@ -646,6 +666,31 @@ function AppContent() {
 
     loadPracticeRecords()
   }, [openedPracticeDayId, selectedPracticeSubject])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    const loadDayOverrides = async () => {
+      const { data } = await supabase.from('practice_day_overrides').select('day_id,topic,date_override')
+      if (data) {
+        const map = {}
+        data.forEach((row) => { map[row.day_id] = { topic: row.topic || '', date: row.date_override || '' } })
+        setDayOverrides(map)
+      }
+    }
+    loadDayOverrides()
+  }, [])
+
+  const saveDayOverride = async () => {
+    if (!editingDayId) return
+    setIsSavingDayEdit(true)
+    const payload = { day_id: editingDayId, topic: dayEditForm.topic.trim(), date_override: dayEditForm.date.trim() }
+    if (isSupabaseConfigured) {
+      await supabase.from('practice_day_overrides').upsert(payload, { onConflict: 'day_id' })
+    }
+    setDayOverrides((prev) => ({ ...prev, [editingDayId]: { topic: payload.topic, date: payload.date_override } }))
+    setIsSavingDayEdit(false)
+    setEditingDayId(null)
+  }
 
   const handleAuthFieldChange = (field, value) => {
     setAuthForm((prev) => ({ ...prev, [field]: value }))
@@ -991,6 +1036,19 @@ function AppContent() {
     await supabase.from('home_posts').delete().eq('id', postId)
   }
 
+  const pickResourceFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true })
+      if (result.canceled) return
+      const asset = result.assets[0]
+      setResourcePickedFile({ uri: asset.uri, name: asset.name, mimeType: asset.mimeType || 'application/octet-stream', size: asset.size })
+      const guessedType = asset.mimeType?.startsWith('image/') ? 'Image' : asset.name?.endsWith('.pdf') ? 'PDF' : 'Document'
+      setResourceForm((p) => ({ ...p, fileType: guessedType }))
+    } catch {
+      setResourceStatus('Could not pick file.')
+    }
+  }
+
   const publishResource = async (subject) => {
     if (!resourceForm.title.trim()) return
     if (isSupabaseConfigured && !currentUser) {
@@ -998,20 +1056,59 @@ function AppContent() {
       return
     }
     const authorName = isSupabaseConfigured ? getUserDisplayName(currentUser) : 'Anonymous'
+    let finalUrl = resourceForm.url.trim()
+
+    if (resourcePickedFile && isSupabaseConfigured) {
+      setResourceStatus('Uploading file…')
+      setIsSyncingResources(true)
+      try {
+        const filePath = `${subject}/${Date.now()}-${resourcePickedFile.name.replace(/\s+/g, '_')}`
+        const { data: { session } } = await supabase.auth.getSession()
+        const uploadResult = await FileSystem.uploadAsync(
+          `${supabaseUrl}/storage/v1/object/resources/${filePath}`,
+          resourcePickedFile.uri,
+          {
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+              apikey: supabaseAnonKey,
+              'Content-Type': resourcePickedFile.mimeType || 'application/octet-stream',
+            },
+            httpMethod: 'POST',
+            uploadType: 0,
+          }
+        )
+        if (uploadResult.status < 200 || uploadResult.status >= 300) {
+          setResourceStatus('File upload failed.')
+          setIsSyncingResources(false)
+          return
+        }
+        finalUrl = `${supabaseUrl}/storage/v1/object/public/resources/${filePath}`
+      } catch (e) {
+        setResourceStatus('Upload error: ' + e.message)
+        setIsSyncingResources(false)
+        return
+      }
+    }
+
     const localResource = {
       id: Date.now(),
       subject,
       title: resourceForm.title.trim(),
       description: resourceForm.description.trim(),
-      url: resourceForm.url.trim(),
+      url: finalUrl,
       fileType: resourceForm.fileType,
       author: authorName,
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     }
+    const resetForm = () => {
+      setShowResourceForm(false)
+      setResourceForm({ title: '', url: '', fileType: 'Document', description: '' })
+      setResourcePickedFile(null)
+      setResourceStatus('')
+    }
     if (!isSupabaseConfigured) {
       setResources((prev) => [...prev, localResource])
-      setShowResourceForm(null)
-      setResourceForm({ title: '', url: '', fileType: 'Document', description: '' })
+      resetForm()
       return
     }
     setIsSyncingResources(true)
@@ -1021,7 +1118,7 @@ function AppContent() {
         subject,
         title: localResource.title,
         description: localResource.description,
-        url: localResource.url,
+        url: finalUrl,
         file_type: localResource.fileType,
         author: authorName,
         user_id: currentUser.id,
@@ -1030,10 +1127,9 @@ function AppContent() {
       .single()
     if (error) {
       setResources((prev) => [...prev, localResource])
-      setResourceStatus('Supabase save failed. Saved locally.')
+      setResourceStatus('Saved locally (Supabase error).')
       setIsSyncingResources(false)
-      setShowResourceForm(null)
-      setResourceForm({ title: '', url: '', fileType: 'Document', description: '' })
+      resetForm()
       return
     }
     setResources((prev) => [
@@ -1051,8 +1147,7 @@ function AppContent() {
     ])
     setResourceStatus('Resource added.')
     setIsSyncingResources(false)
-    setShowResourceForm(null)
-    setResourceForm({ title: '', url: '', fileType: 'Document', description: '' })
+    resetForm()
   }
 
   const getYouTubeVideoId = (url) => {
@@ -1183,7 +1278,7 @@ function AppContent() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.bgTop} />
       <View style={styles.bgBottom} />
-      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 110 + insets.bottom }]}>
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.container}>
         <View style={styles.headerCard}>
           <Text style={styles.eyebrow}>ACHIMOTA NSMQ APP</Text>
           <Text style={styles.h1}>{pageHeading[activePage]}</Text>
@@ -1486,48 +1581,136 @@ function AppContent() {
         )}
 
         {activePage === 'practice' && (
-          <Card title="Practice Planner">
-            {openedPracticeDayId ? (
-              <View style={styles.practiceLayout}>
-                <View style={styles.practiceDetailHeader}>
-                  <Pressable
-                    style={styles.practiceBackButton}
-                    onPress={() => setOpenedPracticeDayId(null)}
-                  >
-                    <Text style={styles.practiceBackText}>Back To Days</Text>
-                  </Pressable>
-                  <Text style={styles.h3}>{currentDay.label}</Text>
-                </View>
+          <>
+            <View style={styles.practiceFullPage}>
+              <View style={styles.practicePageHeader}>
+                <Text style={styles.practicePageTitle}>Practice Planner</Text>
+                <Text style={styles.practicePageSubtitle}>Day One to Day Forty · Tap a day to begin</Text>
+              </View>
 
-                <View style={styles.practiceTopTabs}>
-                  {practiceSubjectTabs.map((subjectTab) => (
-                    <Pressable
-                      key={subjectTab}
-                      style={[
-                        styles.practiceTopTabButton,
-                        selectedPracticeSubject === subjectTab &&
-                          styles.practiceTopTabButtonActive,
-                      ]}
-                      onPress={() => setSelectedPracticeSubject(subjectTab)}
-                    >
-                      <Text
-                        style={[
-                          styles.practiceTopTabText,
-                          selectedPracticeSubject === subjectTab &&
-                            styles.practiceTopTabTextActive,
-                        ]}
+              <View style={styles.practicePageInner}>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.practiceColumn}
+                  style={styles.practiceDayScroll}
+                >
+                  {practiceDays.map((day) => {
+                    const override = dayOverrides[day.id]
+                    const topic = override?.topic || ''
+                    const dateLabel = override?.date || day.date
+                    const active = selectedDay === day.id
+                    return (
+                      <Pressable
+                        key={day.id}
+                        style={[styles.dayPill, active && styles.dayPillActive]}
+                        onPress={() => {
+                          setSelectedDay(day.id)
+                          setOpenedPracticeDayId(day.id)
+                          setSelectedPracticeSubject('Physics')
+                        }}
                       >
-                        {subjectTab}
-                      </Text>
-                    </Pressable>
-                  ))}
+                        <View style={styles.dayPillContent}>
+                          <Text style={[styles.dayPillTitle, active && styles.dayPillTitleActive]}>
+                            {day.label}
+                          </Text>
+                          {topic ? (
+                            <Text style={[styles.dayPillTopic, active && styles.dayPillTopicActive]}>
+                              {topic}
+                            </Text>
+                          ) : null}
+                          <Text style={[styles.dayPillMeta, active && styles.dayPillMetaActive]}>
+                            {dateLabel}
+                          </Text>
+                        </View>
+                        {isAdmin && (
+                          <Pressable
+                            style={styles.dayPillEditBtn}
+                            hitSlop={8}
+                            onPress={() => {
+                              setEditingDayId(day.id)
+                              setDayEditForm({ topic: topic, date: dateLabel })
+                            }}
+                          >
+                            <Ionicons name="pencil-outline" size={14} color={active ? 'rgba(255,255,255,0.8)' : '#0f4c5c'} />
+                          </Pressable>
+                        )}
+                      </Pressable>
+                    )
+                  })}
+                </ScrollView>
+              </View>
+            </View>
+
+            {/* Full-page day detail modal */}
+            <Modal
+              visible={!!openedPracticeDayId}
+              animationType="slide"
+              presentationStyle="fullScreen"
+              onRequestClose={() => {
+                setOpenedPracticeDayId(null)
+                setShowPracticeForm(false)
+                setShowSymbolPicker(false)
+              }}
+            >
+              <SafeAreaView style={styles.addPageSafe} edges={['top', 'left', 'right', 'bottom']}>
+                {/* Header */}
+                <View style={styles.practiceDayModalHeader}>
+                  <Pressable
+                    style={styles.addPageBack}
+                    onPress={() => {
+                      setOpenedPracticeDayId(null)
+                      setShowPracticeForm(false)
+                      setShowSymbolPicker(false)
+                    }}
+                  >
+                    <Ionicons name="arrow-back" size={22} color="#0b2236" />
+                  </Pressable>
+                  <View style={styles.practiceDayModalTitleWrap}>
+                    <Text style={styles.addPageTitle}>
+                      {currentDay?.label ?? ''}{dayOverrides[openedPracticeDayId]?.topic ? ` · ${dayOverrides[openedPracticeDayId].topic}` : ''}
+                    </Text>
+                    <Text style={styles.practiceDayModalMeta}>
+                      {dayOverrides[openedPracticeDayId]?.date || currentDay?.date || ''}
+                    </Text>
+                  </View>
+                  <View style={{ width: 38 }} />
                 </View>
 
-                <View style={styles.practiceSubjectPage}>
-                  <Text style={styles.h3}>
-                    {currentDay.label} - {selectedPracticeSubject}
-                  </Text>
-                  <Text style={styles.workspaceSubtitle}>Fresh Page</Text>
+                {/* Subject tabs */}
+                <View style={styles.practiceDaySubjectBar}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.practiceDaySubjectBarInner}
+                  >
+                    {practiceSubjectTabs.map((subjectTab) => (
+                      <Pressable
+                        key={subjectTab}
+                        style={[
+                          styles.practiceDayTabBtn,
+                          selectedPracticeSubject === subjectTab && styles.practiceDayTabBtnActive,
+                        ]}
+                        onPress={() => setSelectedPracticeSubject(subjectTab)}
+                      >
+                        <Text
+                          style={[
+                            styles.practiceDayTabText,
+                            selectedPracticeSubject === subjectTab && styles.practiceDayTabTextActive,
+                          ]}
+                        >
+                          {subjectTab}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Scrollable content */}
+                <ScrollView
+                  style={styles.scrollArea}
+                  contentContainerStyle={styles.practiceDayModalContent}
+                  keyboardShouldPersistTaps="handled"
+                >
                   <View style={styles.syncRow}>
                     <Text style={styles.syncText}>{practiceStatus}</Text>
                     {isSyncingPractice ? (
@@ -1649,8 +1832,8 @@ function AppContent() {
                   )}
 
                   {scopedPracticeRecords.length === 0 ? (
-                    <Text style={styles.text}>
-                      No saved records yet for {currentDay.label} - {selectedPracticeSubject}.
+                    <Text style={styles.muted}>
+                      No saved records yet for {selectedPracticeSubject}. Tap Add Question to get started.
                     </Text>
                   ) : (
                     <View style={styles.practiceRecordList}>
@@ -1722,177 +1905,232 @@ function AppContent() {
                       ))}
                     </View>
                   )}
-                </View>
-              </View>
-            ) : (
-              <>
-                <Text style={styles.muted}>
-                  Select any day tab from Day One to Day Forty. Clicking a day opens a fresh
-                  screen with top subject tabs.
-                </Text>
+                </ScrollView>
+              </SafeAreaView>
+            </Modal>
 
-                <View style={styles.practiceLayout}>
-                  <View style={styles.practiceTabRailFull}>
-                    <ScrollView
-                      showsVerticalScrollIndicator={false}
-                      contentContainerStyle={styles.practiceColumn}
-                    >
-                      {practiceDays.map((day) => (
-                        <Pressable
-                          key={day.id}
-                          style={[styles.dayPill, selectedDay === day.id && styles.dayPillActive]}
-                          onPress={() => {
-                            setSelectedDay(day.id)
-                            setOpenedPracticeDayId(day.id)
-                            setSelectedPracticeSubject('Physics')
-                          }}
-                        >
-                          <Text
-                            style={[
-                              styles.dayPillTitle,
-                              selectedDay === day.id && styles.dayPillTitleActive,
-                            ]}
-                          >
-                            {day.label}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.dayPillMeta,
-                              selectedDay === day.id && styles.dayPillMetaActive,
-                            ]}
-                          >
-                            {day.date}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  </View>
+            {/* Admin: edit day topic/date */}
+            <Modal
+              visible={!!editingDayId}
+              animationType="slide"
+              presentationStyle="pageSheet"
+              onRequestClose={() => setEditingDayId(null)}
+            >
+              <SafeAreaView style={styles.addPageSafe} edges={['top', 'left', 'right', 'bottom']}>
+                <View style={styles.addPageHeader}>
+                  <Pressable style={styles.addPageBack} onPress={() => setEditingDayId(null)}>
+                    <Ionicons name="close" size={22} color="#0b2236" />
+                  </Pressable>
+                  <Text style={styles.addPageTitle}>
+                    Edit {practiceDays.find((d) => d.id === editingDayId)?.label ?? ''}
+                  </Text>
+                  <View style={{ width: 38 }} />
                 </View>
-              </>
-            )}
-          </Card>
+                <ScrollView contentContainerStyle={styles.dayEditModalContent}>
+                  <Input
+                    label="Topic / Title"
+                    value={dayEditForm.topic}
+                    onChangeText={(v) => setDayEditForm((p) => ({ ...p, topic: v }))}
+                    placeholder="e.g. Magnetism"
+                  />
+                  <View style={{ height: 12 }} />
+                  <Input
+                    label="Date (override)"
+                    value={dayEditForm.date}
+                    onChangeText={(v) => setDayEditForm((p) => ({ ...p, date: v }))}
+                    placeholder={practiceDays.find((d) => d.id === editingDayId)?.date ?? ''}
+                  />
+                  <View style={{ height: 20 }} />
+                  <Pressable style={styles.button} onPress={saveDayOverride}>
+                    {isSavingDayEdit
+                      ? <ActivityIndicator size="small" color="#1f2937" />
+                      : <Text style={styles.buttonText}>Save Changes</Text>
+                    }
+                  </Pressable>
+                </ScrollView>
+              </SafeAreaView>
+            </Modal>
+          </>
         )}
 
         {activePage === 'entry' && (
           <>
             <View style={styles.resourcesIntroCard}>
               <Text style={styles.resourcesIntroTitle}>Study Resources</Text>
-              <Text style={styles.muted}>Tap a subject to browse documents, books, and materials. Sign in to add resources.</Text>
+              <Text style={styles.muted}>Tap a subject to browse all materials. Sign in to upload files or links.</Text>
             </View>
 
             {RESOURCE_SUBJECTS.map(({ name, icon, color }) => {
               const subjectResources = resources.filter((r) => r.subject === name)
-              const isExpanded = expandedSubject === name
-              const isFormOpen = showResourceForm === name
               return (
-                <View key={name} style={styles.resourceSubjectCard}>
-                  <Pressable
-                    style={[styles.resourceSubjectHeader, { borderLeftColor: color }]}
-                    onPress={() => {
-                      setExpandedSubject(isExpanded ? null : name)
-                      if (isExpanded) setShowResourceForm(null)
-                    }}
-                  >
-                    <View style={styles.resourceSubjectHeaderLeft}>
-                      <View style={[styles.resourceSubjectIconWrap, { backgroundColor: color + '22' }]}>
-                        <Ionicons name={icon} size={20} color={color} />
-                      </View>
-                      <View>
-                        <Text style={[styles.resourceSubjectName, { color }]}>{name}</Text>
-                        <Text style={styles.resourceSubjectCount}>
-                          {subjectResources.length} {subjectResources.length === 1 ? 'resource' : 'resources'}
-                        </Text>
-                      </View>
+                <Pressable
+                  key={name}
+                  style={[styles.resourceSubjectCard, { borderLeftColor: color, borderLeftWidth: 4 }]}
+                  onPress={() => { setOpenedSubject(name); setResourceTypeFilter('All') }}
+                >
+                  <View style={styles.resourceSubjectHeaderLeft}>
+                    <View style={[styles.resourceSubjectIconWrap, { backgroundColor: color + '22' }]}>
+                      <Ionicons name={icon} size={22} color={color} />
                     </View>
-                    <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#4f7187" />
-                  </Pressable>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.resourceSubjectName, { color }]}>{name}</Text>
+                      <Text style={styles.resourceSubjectCount}>
+                        {subjectResources.length} {subjectResources.length === 1 ? 'resource' : 'resources'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+                </Pressable>
+              )
+            })}
 
-                  {isExpanded && (
-                    <View style={styles.resourceSubjectBody}>
-                      {subjectResources.length === 0 ? (
-                        <Text style={styles.muted}>No resources yet. Add the first one!</Text>
-                      ) : (
-                        subjectResources.map((res) => {
-                          const ytId = getYouTubeVideoId(res.url)
-                          const isYouTube = Boolean(ytId)
-                          const typeIcon = RESOURCE_TYPE_ICONS[res.fileType] || 'document-outline'
-                          return (
-                            <Pressable
-                              key={res.id}
-                              style={[styles.resourceItem, isYouTube && styles.resourceItemVideo]}
-                              onPress={res.url ? () => openResource(res.url) : undefined}
-                            >
-                              {isYouTube && (
-                                <View style={styles.resourceThumbWrap}>
-                                  <Image
-                                    source={{ uri: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` }}
-                                    style={styles.resourceThumb}
-                                    resizeMode="cover"
-                                  />
-                                  <View style={styles.resourcePlayOverlay}>
-                                    <Ionicons name="play-circle" size={44} color="#fff" />
-                                  </View>
-                                </View>
-                              )}
-                              <View style={[isYouTube && styles.resourceVideoBody]}>
-                                <View style={styles.resourceItemTop}>
-                                  <View style={[styles.resourceTypeBadge, { backgroundColor: color + '22' }]}>
-                                    <Ionicons name={typeIcon} size={12} color={color} style={{ marginRight: 4 }} />
-                                    <Text style={[styles.resourceTypeBadgeText, { color }]}>{res.fileType}</Text>
-                                  </View>
-                                  <Text style={styles.muted}>{res.date}</Text>
-                                </View>
-                                <Text style={styles.h3}>{res.title}</Text>
-                                {res.description ? <Text style={styles.text}>{res.description}</Text> : null}
-                                <Text style={styles.focus}>By {res.author}</Text>
-                                {res.url && !isYouTube ? (
-                                  <View style={[styles.resourceOpenBtn, { borderColor: color }]}>
-                                    <Ionicons name={typeIcon} size={14} color={color} />
-                                    <Text style={[styles.resourceOpenBtnText, { color }]}>Open / Read</Text>
-                                  </View>
-                                ) : null}
-                                {isYouTube ? (
-                                  <View style={[styles.resourceOpenBtn, { borderColor: color }]}>
-                                    <Ionicons name="play-outline" size={14} color={color} />
-                                    <Text style={[styles.resourceOpenBtnText, { color }]}>Watch Video</Text>
-                                  </View>
-                                ) : null}
-                              </View>
-                            </Pressable>
-                          )
-                        })
-                      )}
-
-                      {!isFormOpen ? (
+            {/* Subject full-screen modal */}
+            {RESOURCE_SUBJECTS.map(({ name, icon, color }) => {
+              const subjectResources = resources.filter((r) => r.subject === name)
+              return (
+                <Modal
+                  key={name}
+                  visible={openedSubject === name}
+                  animationType="slide"
+                  presentationStyle="fullScreen"
+                  onRequestClose={() => { setOpenedSubject(null); setShowResourceForm(false); setResourceTypeFilter('All') }}
+                >
+                  <SafeAreaView style={styles.addPageSafe} edges={['top', 'left', 'right', 'bottom']}>
+                    {/* Header */}
+                    <View style={[styles.resourceModalHeader, { borderBottomColor: color + '44' }]}>
+                      <Pressable style={styles.addPageBack} onPress={() => { setOpenedSubject(null); setShowResourceForm(false); setResourceTypeFilter('All') }}>
+                        <Ionicons name="arrow-back" size={22} color="#0b2236" />
+                      </Pressable>
+                      <View style={styles.resourceModalHeaderTitle}>
+                        <View style={[styles.resourceSubjectIconWrap, { backgroundColor: color + '22' }]}>
+                          <Ionicons name={icon} size={18} color={color} />
+                        </View>
+                        <Text style={[styles.addPageTitle, { color }]}>{name}</Text>
+                      </View>
+                      {currentUser && (
                         <Pressable
-                          style={[styles.resourceAddBtn, { backgroundColor: color }]}
-                          onPress={() => setShowResourceForm(name)}
+                          style={[styles.resourceModalAddBtn, { backgroundColor: color }]}
+                          onPress={() => setShowResourceForm(true)}
                         >
-                          <Ionicons name="add-circle-outline" size={16} color="#fff" />
-                          <Text style={styles.resourceAddBtnText}>Add {name} Resource</Text>
+                          <Ionicons name="add" size={20} color="#fff" />
                         </Pressable>
-                      ) : (
+                      )}
+                      {!currentUser && <View style={{ width: 38 }} />}
+                    </View>
+
+                    {/* Type filter tabs */}
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.resourceFilterBar}
+                      contentContainerStyle={styles.resourceFilterBarInner}
+                    >
+                      {['All', ...RESOURCE_TYPES].map((type) => {
+                        const active = resourceTypeFilter === type
+                        const count = type === 'All'
+                          ? subjectResources.length
+                          : subjectResources.filter((r) => r.fileType === type).length
+                        return (
+                          <Pressable
+                            key={type}
+                            style={[styles.resourceFilterTab, active && { backgroundColor: color, borderColor: color }]}
+                            onPress={() => setResourceTypeFilter(type)}
+                          >
+                            <Ionicons
+                              name={type === 'All' ? 'apps-outline' : (RESOURCE_TYPE_ICONS[type] || 'document-outline')}
+                              size={14}
+                              color={active ? '#fff' : color}
+                              style={{ marginRight: 4 }}
+                            />
+                            <Text style={[styles.resourceFilterTabText, active && { color: '#fff' }]}>{type}</Text>
+                            {count > 0 && (
+                              <View style={[styles.resourceFilterTabBadge, active && { backgroundColor: '#ffffff44' }]}>
+                                <Text style={[styles.resourceFilterTabBadgeText, active && { color: '#fff' }]}>{count}</Text>
+                              </View>
+                            )}
+                          </Pressable>
+                        )
+                      })}
+                    </ScrollView>
+
+                    {/* Resource list */}
+                    <ScrollView style={styles.scrollArea} contentContainerStyle={styles.resourceModalList}>
+                      {(resourceTypeFilter === 'All' ? subjectResources : subjectResources.filter((r) => r.fileType === resourceTypeFilter)).length === 0 && !showResourceForm ? (
+                        <View style={styles.resourceEmptyState}>
+                          <Ionicons name={icon} size={48} color={color + '66'} />
+                          <Text style={styles.resourceEmptyTitle}>No {resourceTypeFilter === 'All' ? '' : resourceTypeFilter + ' '}resources yet</Text>
+                          <Text style={styles.muted}>Be the first to upload a resource for {name}.</Text>
+                        </View>
+                      ) : null}
+
+                      {(resourceTypeFilter === 'All' ? subjectResources : subjectResources.filter((r) => r.fileType === resourceTypeFilter)).map((res) => {
+                        const ytId = getYouTubeVideoId(res.url)
+                        const isYouTube = Boolean(ytId)
+                        const isImage = IMAGE_MIME_TYPES.some((m) => res.url?.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/)) || res.fileType === 'Image'
+                        const typeIcon = RESOURCE_TYPE_ICONS[res.fileType] || 'document-outline'
+                        return (
+                          <Pressable
+                            key={res.id}
+                            style={styles.resourceCard}
+                            onPress={() => setViewingResource({ ...res, color, subjectIcon: icon })}
+                          >
+                            {isYouTube && (
+                              <View style={styles.resourceThumbWrap}>
+                                <Image
+                                  source={{ uri: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` }}
+                                  style={styles.resourceThumb}
+                                  resizeMode="cover"
+                                />
+                                <View style={styles.resourcePlayOverlay}>
+                                  <Ionicons name="play-circle" size={44} color="#fff" />
+                                </View>
+                              </View>
+                            )}
+                            {isImage && res.url && !isYouTube && (
+                              <Image source={{ uri: res.url }} style={styles.resourceThumb} resizeMode="cover" />
+                            )}
+                            <View style={styles.resourceCardBody}>
+                              <View style={styles.resourceItemTop}>
+                                <View style={[styles.resourceTypeBadge, { backgroundColor: color + '22' }]}>
+                                  <Ionicons name={typeIcon} size={12} color={color} style={{ marginRight: 4 }} />
+                                  <Text style={[styles.resourceTypeBadgeText, { color }]}>{res.fileType}</Text>
+                                </View>
+                                <Text style={styles.muted}>{res.date}</Text>
+                              </View>
+                              <Text style={styles.h3}>{res.title}</Text>
+                              {res.description ? <Text style={styles.text} numberOfLines={2}>{res.description}</Text> : null}
+                              <Text style={styles.focus}>By {res.author}</Text>
+                              <View style={[styles.resourceOpenBtn, { borderColor: color }]}>
+                                <Ionicons name={isYouTube ? 'play-outline' : typeIcon} size={14} color={color} />
+                                <Text style={[styles.resourceOpenBtnText, { color }]}>
+                                  {isYouTube ? 'Watch Video' : 'Open / View'}
+                                </Text>
+                              </View>
+                            </View>
+                          </Pressable>
+                        )
+                      })}
+
+                      {/* Add resource form */}
+                      {showResourceForm && (
                         <View style={styles.resourceFormCard}>
                           <View style={styles.resourceFormHeader}>
-                            <Text style={styles.h3}>New {name} Resource</Text>
+                            <Text style={styles.h3}>Add {name} Resource</Text>
                             <Pressable onPress={() => {
-                              setShowResourceForm(null)
+                              setShowResourceForm(false)
                               setResourceForm({ title: '', url: '', fileType: 'Document', description: '' })
+                              setResourcePickedFile(null)
+                              setResourceStatus('')
                             }}>
                               <Ionicons name="close" size={20} color="#36536b" />
                             </Pressable>
                           </View>
+
                           <Input
-                            label="Title"
+                            label="Title *"
                             value={resourceForm.title}
                             onChangeText={(v) => setResourceForm((p) => ({ ...p, title: v }))}
                             placeholder="e.g. Waves and Optics Notes"
-                          />
-                          <Input
-                            label="URL / Link"
-                            value={resourceForm.url}
-                            onChangeText={(v) => setResourceForm((p) => ({ ...p, url: v }))}
-                            placeholder="https://drive.google.com/..."
                           />
                           <Input
                             label="Description (optional)"
@@ -1901,6 +2139,33 @@ function AppContent() {
                             placeholder="Brief description of this resource"
                             multiline
                           />
+
+                          {/* File pick vs URL */}
+                          <Text style={styles.label}>Source</Text>
+                          <Pressable style={[styles.resourcePickFileBtn, { borderColor: color }]} onPress={pickResourceFile}>
+                            <Ionicons name="cloud-upload-outline" size={20} color={color} />
+                            <Text style={[styles.resourcePickFileBtnText, { color }]}>
+                              {resourcePickedFile ? resourcePickedFile.name : 'Pick file from device'}
+                            </Text>
+                          </Pressable>
+                          {resourcePickedFile && (
+                            <View style={styles.resourcePickedFileInfo}>
+                              <Ionicons name="checkmark-circle" size={16} color="#2d6a4f" />
+                              <Text style={styles.resourcePickedFileName} numberOfLines={1}>{resourcePickedFile.name}</Text>
+                              <Pressable onPress={() => setResourcePickedFile(null)}>
+                                <Ionicons name="close-circle-outline" size={16} color="#e63946" />
+                              </Pressable>
+                            </View>
+                          )}
+                          <Text style={[styles.muted, { textAlign: 'center', marginVertical: 4 }]}>— or paste a URL —</Text>
+                          <Input
+                            label="URL / Link"
+                            value={resourceForm.url}
+                            onChangeText={(v) => setResourceForm((p) => ({ ...p, url: v }))}
+                            placeholder="https://drive.google.com/..."
+                          />
+
+                          {/* Type picker */}
                           <View style={styles.resourceTypeSection}>
                             <Text style={styles.label}>Type</Text>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -1908,18 +2173,10 @@ function AppContent() {
                                 {RESOURCE_TYPES.map((type) => (
                                   <Pressable
                                     key={type}
-                                    style={[
-                                      styles.resourceTypePill,
-                                      resourceForm.fileType === type && { backgroundColor: color, borderColor: color },
-                                    ]}
+                                    style={[styles.resourceTypePill, resourceForm.fileType === type && { backgroundColor: color, borderColor: color }]}
                                     onPress={() => setResourceForm((p) => ({ ...p, fileType: type }))}
                                   >
-                                    <Text
-                                      style={[
-                                        styles.resourceTypePillText,
-                                        resourceForm.fileType === type && { color: '#fff' },
-                                      ]}
-                                    >
+                                    <Text style={[styles.resourceTypePillText, resourceForm.fileType === type && { color: '#fff' }]}>
                                       {type}
                                     </Text>
                                   </Pressable>
@@ -1927,22 +2184,19 @@ function AppContent() {
                               </View>
                             </ScrollView>
                           </View>
+
                           {resourceStatus ? <Text style={styles.muted}>{resourceStatus}</Text> : null}
-                          <Pressable
-                            style={[styles.button, { backgroundColor: color }]}
-                            onPress={() => publishResource(name)}
-                          >
-                            {isSyncingResources ? (
-                              <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                              <Text style={styles.buttonText}>Save Resource</Text>
-                            )}
+                          <Pressable style={[styles.button, { backgroundColor: color }]} onPress={() => publishResource(name)}>
+                            {isSyncingResources
+                              ? <ActivityIndicator size="small" color="#fff" />
+                              : <Text style={styles.buttonText}>Save Resource</Text>
+                            }
                           </Pressable>
                         </View>
                       )}
-                    </View>
-                  )}
-                </View>
+                    </ScrollView>
+                  </SafeAreaView>
+                </Modal>
               )
             })}
           </>
@@ -1967,53 +2221,68 @@ function AppContent() {
                 )}
               </View>
 
-              {/* Category filter buttons */}
-              <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 8 }}>
-                <Pressable
-                  style={[
-                    styles.button,
-                    { marginRight: 8, backgroundColor: selectedLeaderboardCategory === 'main' ? '#0f4c5c' : '#b0bec5' },
-                  ]}
-                  onPress={() => setSelectedLeaderboardCategory('main')}
-                >
-                  <Text style={styles.buttonText}>Main Category</Text>
-                </Pressable>
-                <Pressable
-                  style={[
-                    styles.button,
-                    { backgroundColor: selectedLeaderboardCategory === 'substitute' ? '#0f4c5c' : '#b0bec5' },
-                  ]}
-                  onPress={() => setSelectedLeaderboardCategory('substitute')}
-                >
-                  <Text style={styles.buttonText}>Substitute Category</Text>
-                </Pressable>
-              </View>
-
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabRow}>
-                {subjects.map((subject) => (
+              {/* Category toggle */}
+              <View style={styles.lbCategoryToggle}>
+                {['main', 'substitute'].map((cat) => (
                   <Pressable
-                    key={subject}
-                    style={[styles.tab, selectedSubject === subject && styles.tabActive]}
-                    onPress={() => setSelectedSubject(subject)}
+                    key={cat}
+                    style={[styles.lbCategoryBtn, selectedLeaderboardCategory === cat && styles.lbCategoryBtnActive]}
+                    onPress={() => setSelectedLeaderboardCategory(cat)}
                   >
-                    <Text style={[styles.tabText, selectedSubject === subject && styles.tabTextActive]}>{subject}</Text>
+                    <Text style={[styles.lbCategoryBtnText, selectedLeaderboardCategory === cat && styles.lbCategoryBtnTextActive]}>
+                      {cat === 'main' ? 'Main Squad' : 'Substitutes'}
+                    </Text>
                   </Pressable>
                 ))}
-              </ScrollView>
+              </View>
+
+              {/* Column headers */}
+              <View style={styles.lbTableHeader}>
+                <Text style={[styles.lbHeaderCell, { width: 32 }]}>#</Text>
+                <Text style={[styles.lbHeaderCell, { flex: 1 }]}>Student</Text>
+                <Text style={[styles.lbHeaderCell, { width: 52, textAlign: 'center' }]}>Contests</Text>
+                <Text style={[styles.lbHeaderCell, { width: 60, textAlign: 'right' }]}>Total</Text>
+              </View>
 
               {sortedLeaderboard
                 .filter((student) => (student.category || 'main') === selectedLeaderboardCategory)
-                .map((student, idx) => (
-                  <View key={student.student} style={styles.scoreRow}>
-                    <Text style={styles.rank}>#{idx + 1}</Text>
-                    <View style={styles.rankBody}>
-                      <Text style={styles.h3}>{student.student}</Text>
-                      <Text style={styles.text}>
-                        Overall {student.overall}% | Phy {student.Physics}% | Chem {student.Chemistry}% | Bio {student.Biology}% | Math {student.Mathematics}% | GK {student.GK}%
-                      </Text>
+                .map((student, idx) => {
+                  const pos = idx + 1
+                  const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : null
+                  const SUBJECT_ABBR = { Physics: 'Phy', Chemistry: 'Chem', Biology: 'Bio', Mathematics: 'Math', GK: 'Gen. Know' }
+                  return (
+                    <View key={student.student} style={[styles.lbStudentCard, pos <= 3 && styles.lbStudentCardTop]}>
+                      {/* Top row */}
+                      <View style={styles.lbStudentTopRow}>
+                        <View style={styles.lbRankBadge}>
+                          {medal
+                            ? <Text style={styles.lbMedal}>{medal}</Text>
+                            : <Text style={styles.lbRankNum}>#{pos}</Text>
+                          }
+                        </View>
+                        <Text style={styles.lbStudentName}>{student.student}</Text>
+                        <View style={styles.lbContestsBadge}>
+                          <Text style={styles.lbContestsNum}>{student.contests}</Text>
+                          <Text style={styles.lbContestsLabel}>contest{student.contests !== 1 ? 's' : ''}</Text>
+                        </View>
+                        <View style={styles.lbOverallBadge}>
+                          <Text style={styles.lbOverallNum}>{student.overall}</Text>
+                          <Text style={styles.lbOverallLabel}>Total Score</Text>
+                        </View>
+                      </View>
+
+                      {/* Subject score grid */}
+                      <View style={styles.lbSubjectGrid}>
+                        {['Physics', 'Chemistry', 'Biology', 'Mathematics', 'GK'].map((subj) => (
+                          <View key={subj} style={styles.lbSubjectCell}>
+                            <Text style={styles.lbSubjectLabel}>{SUBJECT_ABBR[subj]}</Text>
+                            <Text style={styles.lbSubjectScore}>{student[subj]}</Text>
+                          </View>
+                        ))}
+                      </View>
                     </View>
-                  </View>
-                ))}
+                  )
+                })}
 
               <Modal
                 visible={showLeaderboardModal}
@@ -2030,20 +2299,19 @@ function AppContent() {
                       </Pressable>
                     </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 460 }}>
-                      {/* Quick-select existing student */}
-                      <Text style={styles.lbPickerLabel}>Tap a student to pre-fill</Text>
+                    <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 500 }}>
+                      {/* Quick-select student */}
+                      <Text style={styles.lbPickerLabel}>Select student to update</Text>
                       <View style={styles.lbPickerRow}>
-                        {leaderboardRows.map((row) => (
+                        {leaderboardRows
+                          .filter((r) => (r.category || 'main') === newLeaderboard.category)
+                          .map((row) => (
                           <Pressable
                             key={row.student}
-                            style={[
-                              styles.lbPickerPill,
-                              newLeaderboard.student === row.student && styles.lbPickerPillActive,
-                            ]}
+                            style={[styles.lbPickerPill, newLeaderboard.student === row.student && styles.lbPickerPillActive]}
                             onPress={() => setNewLeaderboard({
                               student: row.student,
-                              overall: String(row.overall),
+                              contests: String(row.contests ?? 0),
                               Physics: String(row.Physics),
                               Chemistry: String(row.Chemistry),
                               Biology: String(row.Biology),
@@ -2076,18 +2344,28 @@ function AppContent() {
                             onPress={() => setNewLeaderboard(n => ({ ...n, category: cat }))}
                           >
                             <Text style={[styles.lbCatText, newLeaderboard.category === cat && { color: '#fff' }]}>
-                              {cat === 'main' ? 'Main' : 'Substitute'}
+                              {cat === 'main' ? 'Main Squad' : 'Substitute'}
                             </Text>
                           </Pressable>
                         ))}
                       </View>
 
-                      <Input label="Overall %" value={newLeaderboard.overall} onChangeText={v => setNewLeaderboard(n => ({ ...n, overall: v }))} placeholder="0–100" />
-                      <Input label="Physics %" value={newLeaderboard.Physics} onChangeText={v => setNewLeaderboard(n => ({ ...n, Physics: v }))} placeholder="0–100" />
-                      <Input label="Chemistry %" value={newLeaderboard.Chemistry} onChangeText={v => setNewLeaderboard(n => ({ ...n, Chemistry: v }))} placeholder="0–100" />
-                      <Input label="Biology %" value={newLeaderboard.Biology} onChangeText={v => setNewLeaderboard(n => ({ ...n, Biology: v }))} placeholder="0–100" />
-                      <Input label="Mathematics %" value={newLeaderboard.Mathematics} onChangeText={v => setNewLeaderboard(n => ({ ...n, Mathematics: v }))} placeholder="0–100" />
-                      <Input label="General Knowledge %" value={newLeaderboard.GK} onChangeText={v => setNewLeaderboard(n => ({ ...n, GK: v }))} placeholder="0–100" />
+                      <Input label="Contests Participated" value={newLeaderboard.contests} onChangeText={v => setNewLeaderboard(n => ({ ...n, contests: v }))} placeholder="e.g. 3" />
+                      <Input label="Physics Score" value={newLeaderboard.Physics} onChangeText={v => setNewLeaderboard(n => ({ ...n, Physics: v }))} placeholder="Points scored" />
+                      <Input label="Chemistry Score" value={newLeaderboard.Chemistry} onChangeText={v => setNewLeaderboard(n => ({ ...n, Chemistry: v }))} placeholder="Points scored" />
+                      <Input label="Biology Score" value={newLeaderboard.Biology} onChangeText={v => setNewLeaderboard(n => ({ ...n, Biology: v }))} placeholder="Points scored" />
+                      <Input label="Mathematics Score" value={newLeaderboard.Mathematics} onChangeText={v => setNewLeaderboard(n => ({ ...n, Mathematics: v }))} placeholder="Points scored" />
+                      <Input label="General Knowledge Score" value={newLeaderboard.GK} onChangeText={v => setNewLeaderboard(n => ({ ...n, GK: v }))} placeholder="Points scored" />
+
+                      {/* Auto-computed overall preview */}
+                      {(['Physics','Chemistry','Biology','Mathematics','GK'].every(k => newLeaderboard[k] !== '')) && (
+                        <View style={styles.lbAutoTotal}>
+                          <Text style={styles.lbAutoTotalLabel}>Auto-calculated Total</Text>
+                          <Text style={styles.lbAutoTotalValue}>
+                            {['Physics','Chemistry','Biology','Mathematics','GK'].reduce((s, k) => s + (parseInt(newLeaderboard[k], 10) || 0), 0)} pts
+                          </Text>
+                        </View>
+                      )}
 
                       {saveError ? <Text style={{ color: '#e63946', marginTop: 4, fontSize: 13 }}>{saveError}</Text> : null}
                     </ScrollView>
@@ -2105,7 +2383,7 @@ function AppContent() {
                         onPress={async () => {
                           setIsSavingLeaderboard(true)
                           setSaveError('')
-                          const scoreFields = ['overall', 'Physics', 'Chemistry', 'Biology', 'Mathematics', 'GK']
+                          const scoreFields = ['Physics', 'Chemistry', 'Biology', 'Mathematics', 'GK']
                           if (!newLeaderboard.student.trim()) {
                             setSaveError('Student name is required.')
                             setIsSavingLeaderboard(false)
@@ -2113,20 +2391,27 @@ function AppContent() {
                           }
                           for (const key of scoreFields) {
                             const val = parseInt(newLeaderboard[key], 10)
-                            if (isNaN(val) || val < 0 || val > 100) {
-                              setSaveError(`${key} must be 0–100.`)
+                            if (isNaN(val) || val < 0) {
+                              setSaveError(`${key} must be a valid score.`)
                               setIsSavingLeaderboard(false)
                               return
                             }
                           }
+                          const phy = parseInt(newLeaderboard.Physics, 10)
+                          const chem = parseInt(newLeaderboard.Chemistry, 10)
+                          const bio = parseInt(newLeaderboard.Biology, 10)
+                          const math = parseInt(newLeaderboard.Mathematics, 10)
+                          const gk = parseInt(newLeaderboard.GK, 10)
+                          const overall = phy + chem + bio + math + gk
                           const payload = {
                             student: newLeaderboard.student.trim(),
-                            overall: parseInt(newLeaderboard.overall, 10),
-                            physics: parseInt(newLeaderboard.Physics, 10),
-                            chemistry: parseInt(newLeaderboard.Chemistry, 10),
-                            biology: parseInt(newLeaderboard.Biology, 10),
-                            mathematics: parseInt(newLeaderboard.Mathematics, 10),
-                            gk: parseInt(newLeaderboard.GK, 10),
+                            overall,
+                            physics: phy,
+                            chemistry: chem,
+                            biology: bio,
+                            mathematics: math,
+                            gk,
+                            contests: parseInt(newLeaderboard.contests, 10) || 0,
                             category: newLeaderboard.category,
                           }
                           const isExisting = leaderboardRows.some(r => r.student === payload.student)
@@ -2137,13 +2422,13 @@ function AppContent() {
                                 .from('leaderboard_scores')
                                 .update(payload)
                                 .eq('student', payload.student)
-                                .select('student,overall,physics,chemistry,biology,mathematics,gk,category')
+                                .select('student,overall,physics,chemistry,biology,mathematics,gk,contests,category')
                                 .single())
                             } else {
                               ;({ data, error } = await supabase
                                 .from('leaderboard_scores')
                                 .insert(payload)
-                                .select('student,overall,physics,chemistry,biology,mathematics,gk,category')
+                                .select('student,overall,physics,chemistry,biology,mathematics,gk,contests,category')
                                 .single())
                             }
                             if (error) { setSaveError(error.message || 'Failed to save.'); setIsSavingLeaderboard(false); return }
@@ -2154,7 +2439,7 @@ function AppContent() {
                                 : [...prev, mapped],
                             )
                             setShowLeaderboardModal(false)
-                            setNewLeaderboard({ student: '', overall: '', Physics: '', Chemistry: '', Biology: '', Mathematics: '', GK: '', category: 'main' })
+                            setNewLeaderboard({ student: '', contests: '', Physics: '', Chemistry: '', Biology: '', Mathematics: '', GK: '', category: 'main' })
                           } catch {
                             setSaveError('Unexpected error.')
                           }
@@ -2507,30 +2792,109 @@ function AppContent() {
         )}
       </ScrollView>
 
-      <View style={[styles.bottomNav, { bottom: 12 + insets.bottom }]}>
-        {navigationItems.map((item) => (
-          <Pressable
-            key={item.id}
-            style={[styles.navButton, activePage === item.id && styles.navButtonActive]}
-            onPress={() => setActivePage(item.id)}
-          >
-            <View style={styles.navIconWrap}>
-              <Ionicons
-                name={activePage === item.id ? item.iconActive : item.icon}
-                size={20}
-                color={activePage === item.id ? '#0b2236' : '#53748a'}
-              />
-            </View>
-            <Text style={[styles.navText, activePage === item.id && styles.navTextActive]}>
-              {item.label}
-            </Text>
-          </Pressable>
-        ))}
+      {/* Resource viewer modal (global, outside ScrollView) */}
+      <Modal
+        visible={!!viewingResource}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setViewingResource(null)}
+      >
+        {viewingResource && (() => {
+          const res = viewingResource
+          const ytId = getYouTubeVideoId(res.url)
+          const isYouTube = Boolean(ytId)
+          const isImage = res.fileType === 'Image' || res.url?.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i)
+          const typeIcon = RESOURCE_TYPE_ICONS[res.fileType] || 'document-outline'
+          const color = res.color || '#0f4c5c'
+          return (
+            <SafeAreaView style={styles.addPageSafe} edges={['top', 'left', 'right', 'bottom']}>
+              <View style={[styles.resourceViewerHeader, { borderBottomColor: color + '33' }]}>
+                <Pressable style={styles.addPageBack} onPress={() => setViewingResource(null)}>
+                  <Ionicons name="arrow-back" size={22} color="#0b2236" />
+                </Pressable>
+                <Text style={[styles.addPageTitle, { flex: 1 }]} numberOfLines={1}>{res.title}</Text>
+                <View style={{ width: 38 }} />
+              </View>
+
+              <ScrollView style={styles.scrollArea} contentContainerStyle={styles.resourceViewerContent}>
+                {isYouTube && (
+                  <View style={styles.resourceViewerThumb}>
+                    <Image
+                      source={{ uri: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` }}
+                      style={styles.resourceViewerThumbImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.resourcePlayOverlay}>
+                      <Ionicons name="play-circle" size={60} color="#fff" />
+                    </View>
+                  </View>
+                )}
+                {isImage && res.url && !isYouTube && (
+                  <Image source={{ uri: res.url }} style={styles.resourceViewerImage} resizeMode="contain" />
+                )}
+
+                <View style={styles.resourceViewerMeta}>
+                  <View style={[styles.resourceTypeBadge, { backgroundColor: color + '22', paddingHorizontal: 10, paddingVertical: 5 }]}>
+                    <Ionicons name={typeIcon} size={14} color={color} style={{ marginRight: 6 }} />
+                    <Text style={[styles.resourceTypeBadgeText, { color, fontSize: 13 }]}>{res.fileType}</Text>
+                  </View>
+                  <Text style={styles.muted}>{res.date}</Text>
+                </View>
+
+                <Text style={[styles.h2, { marginTop: 8 }]}>{res.title}</Text>
+                {res.description ? <Text style={[styles.text, { marginTop: 6, lineHeight: 22 }]}>{res.description}</Text> : null}
+                <Text style={[styles.focus, { marginTop: 8 }]}>Uploaded by {res.author}</Text>
+
+                {res.url ? (
+                  <Pressable
+                    style={[styles.resourceViewerOpenBtn, { backgroundColor: color }]}
+                    onPress={() => openResource(res.url)}
+                  >
+                    <Ionicons name={isYouTube ? 'logo-youtube' : isImage ? 'image-outline' : 'open-outline'} size={20} color="#fff" />
+                    <Text style={styles.resourceViewerOpenBtnText}>
+                      {isYouTube ? 'Watch on YouTube' : isImage ? 'Open Full Image' : 'Open / Download'}
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <View style={styles.resourceViewerNoUrl}>
+                    <Ionicons name="cloud-offline-outline" size={32} color="#94a3b8" />
+                    <Text style={styles.muted}>No file or link attached to this resource.</Text>
+                  </View>
+                )}
+              </ScrollView>
+            </SafeAreaView>
+          )
+        })()}
+      </Modal>
+
+      <View style={[styles.bottomNav, { paddingBottom: 8 + insets.bottom }]}>
+        {navigationItems.map((item) => {
+          const active = activePage === item.id
+          return (
+            <Pressable
+              key={item.id}
+              style={styles.navButton}
+              onPress={() => setActivePage(item.id)}
+            >
+              {active && <View style={styles.navActiveBar} />}
+              <View style={styles.navIconWrap}>
+                <Ionicons
+                  name={active ? item.iconActive : item.icon}
+                  size={22}
+                  color={active ? '#0f4c5c' : '#94a3b8'}
+                />
+              </View>
+              <Text style={[styles.navText, active && styles.navTextActive]}>
+                {item.label}
+              </Text>
+            </Pressable>
+          )
+        })}
       </View>
 
       {activePage === 'home' && (
         <Pressable
-          style={[styles.fab, { bottom: 90 + insets.bottom }]}
+          style={[styles.fab, { bottom: 76 + insets.bottom }]}
           onPress={() => {
             if (showHomePostForm) {
               setShowHomePostForm(false)
@@ -2569,9 +2933,9 @@ function HomeSectionPostCard({ post, canDelete, onDelete }) {
   )
 }
 
-function Card({ title, children }) {
+function Card({ title, children, fullWidth }) {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, fullWidth && { width: '100%', maxWidth: '100%', alignSelf: 'stretch' }] }>
       <Text style={styles.h2}>{title}</Text>
       <View style={styles.cardGap}>{children}</View>
     </View>
@@ -2629,8 +2993,12 @@ const styles = StyleSheet.create({
     borderRadius: 120,
     backgroundColor: 'rgba(255, 183, 3, 0.35)',
   },
+  scrollArea: {
+    flex: 1,
+  },
   container: {
     padding: 16,
+    paddingBottom: 28,
     gap: 12,
   },
   headerCard: {
@@ -2915,6 +3283,8 @@ const styles = StyleSheet.create({
   practiceLayout: {
     marginTop: 6,
     gap: 10,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   practiceTabRail: {
     maxHeight: 330,
@@ -2931,6 +3301,96 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     backgroundColor: 'rgba(255,255,255,0.88)',
     padding: 8,
+  },
+  practiceFullPage: {
+    marginHorizontal: -16,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  practicePageHeader: {
+    backgroundColor: '#0f4c5c',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 4,
+  },
+  practicePageTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  practicePageSubtitle: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  practicePageInner: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  practiceDayScroll: {
+    maxHeight: 500,
+  },
+  practiceDayModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(46,72,97,0.12)',
+    gap: 12,
+  },
+  practiceDayModalTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  practiceDayModalMeta: {
+    fontSize: 12,
+    color: '#53748a',
+    fontWeight: '500',
+  },
+  practiceDaySubjectBar: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(46,72,97,0.1)',
+  },
+  practiceDaySubjectBarInner: {
+    flexDirection: 'row',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  practiceDayTabBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(46,72,97,0.26)',
+    backgroundColor: '#f7fbfd',
+  },
+  practiceDayTabBtnActive: {
+    backgroundColor: '#0f4c5c',
+    borderColor: '#0f4c5c',
+  },
+  practiceDayTabText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#36536b',
+  },
+  practiceDayTabTextActive: {
+    color: '#fff',
+  },
+  practiceDayModalContent: {
+    padding: 16,
+    gap: 14,
+    paddingBottom: 40,
+  },
+  dayEditModalContent: {
+    padding: 20,
+    paddingBottom: 40,
   },
   practiceDetailHeader: {
     gap: 8,
@@ -3014,12 +3474,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   dayPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: 'rgba(46,72,97,0.28)',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 10,
     backgroundColor: '#fff',
+    gap: 8,
   },
   dayPillActive: {
     backgroundColor: '#0f4c5c',
@@ -3033,10 +3497,28 @@ const styles = StyleSheet.create({
   dayPillTitleActive: {
     color: '#ffffff',
   },
+  dayPillContent: {
+    flex: 1,
+    gap: 2,
+  },
+  dayPillTopic: {
+    color: '#219ebc',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  dayPillTopicActive: {
+    color: '#8ecae6',
+  },
+  dayPillEditBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(15,76,92,0.08)',
+    alignSelf: 'center',
+  },
   dayPillMeta: {
     color: '#4f7187',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '500',
   },
   dayPillMetaActive: {
     color: '#d9edf7',
@@ -3264,53 +3746,50 @@ const styles = StyleSheet.create({
   },
   noteContent: { fontSize: 14, color: '#36536b', lineHeight: 20 },
   bottomNav: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderWidth: 1,
-    borderColor: 'rgba(28,77,107,0.2)',
-    shadowColor: '#0f2940',
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    gap: 6,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(28,77,107,0.1)',
+    paddingTop: 6,
+    paddingHorizontal: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 12,
   },
   navButton: {
     flex: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 7,
-    borderRadius: 13,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 6,
     gap: 3,
-    backgroundColor: 'transparent',
+    position: 'relative',
   },
-  navButtonActive: {
-    backgroundColor: 'rgba(142,202,230,0.45)',
-    borderWidth: 1,
-    borderColor: 'rgba(20,91,128,0.25)',
+  navButtonActive: {},
+  navActiveBar: {
+    position: 'absolute',
+    top: 0,
+    left: '25%',
+    right: '25%',
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#0f4c5c',
   },
   navIconWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   navText: {
-    color: '#48687d',
-    fontSize: 10.5,
-    fontWeight: '700',
+    color: '#94a3b8',
+    fontSize: 10,
+    fontWeight: '600',
   },
   navTextActive: {
-    color: '#0b2236',
+    color: '#0f4c5c',
+    fontWeight: '700',
   },
   fab: {
     position: 'absolute',
@@ -3623,11 +4102,19 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   resourceSubjectCard: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: 'rgba(46,72,97,0.14)',
     borderRadius: 16,
-    overflow: 'hidden',
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#0f2940',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   resourceSubjectHeader: {
     flexDirection: 'row',
@@ -3781,6 +4268,193 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  resourceSubjectHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  resourceModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    gap: 10,
+  },
+  resourceFilterBar: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    flexGrow: 0,
+  },
+  resourceFilterBarInner: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  resourceFilterTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#f8fafc',
+  },
+  resourceFilterTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#36536b',
+  },
+  resourceFilterTabBadge: {
+    marginLeft: 5,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  resourceFilterTabBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#36536b',
+  },
+  resourceModalHeaderTitle: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  resourceModalAddBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resourceModalList: {
+    padding: 16,
+    gap: 14,
+    paddingBottom: 40,
+  },
+  resourceCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(46,72,97,0.14)',
+    overflow: 'hidden',
+    shadowColor: '#0f2940',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  resourceCardBody: {
+    padding: 14,
+    gap: 5,
+  },
+  resourceEmptyState: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    gap: 10,
+  },
+  resourceEmptyTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0b2236',
+  },
+  resourcePickFileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+  },
+  resourcePickFileBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    flex: 1,
+  },
+  resourcePickedFileInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(45,106,79,0.08)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  resourcePickedFileName: {
+    flex: 1,
+    fontSize: 12,
+    color: '#2d6a4f',
+    fontWeight: '600',
+  },
+  resourceViewerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    gap: 10,
+  },
+  resourceViewerContent: {
+    padding: 16,
+    paddingBottom: 48,
+    gap: 8,
+  },
+  resourceViewerThumb: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    marginBottom: 8,
+  },
+  resourceViewerThumbImage: {
+    width: '100%',
+    height: 200,
+  },
+  resourceViewerImage: {
+    width: '100%',
+    height: 260,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: '#e8f4f8',
+  },
+  resourceViewerMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  resourceViewerOpenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginTop: 20,
+  },
+  resourceViewerOpenBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  resourceViewerNoUrl: {
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 32,
+  },
   addPageSafe: {
     flex: 1,
     backgroundColor: '#f8fafc',
@@ -3873,6 +4547,169 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '800',
+  },
+  lbCategoryToggle: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(46,72,97,0.07)',
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 4,
+  },
+  lbCategoryBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  lbCategoryBtnActive: {
+    backgroundColor: '#0f4c5c',
+  },
+  lbCategoryBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#4f7187',
+  },
+  lbCategoryBtnTextActive: {
+    color: '#fff',
+  },
+  lbTableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(46,72,97,0.1)',
+    marginBottom: 4,
+  },
+  lbHeaderCell: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4f7187',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  lbStudentCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(46,72,97,0.12)',
+    padding: 12,
+    gap: 10,
+    shadowColor: '#0f2940',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  lbStudentCardTop: {
+    borderColor: 'rgba(15,76,92,0.3)',
+    backgroundColor: 'rgba(15,76,92,0.03)',
+  },
+  lbStudentTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  lbRankBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(46,72,97,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lbMedal: {
+    fontSize: 18,
+  },
+  lbRankNum: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0b2236',
+  },
+  lbStudentName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0b2236',
+  },
+  lbContestsBadge: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(33,158,188,0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  lbContestsNum: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#219ebc',
+  },
+  lbContestsLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#219ebc',
+  },
+  lbOverallBadge: {
+    alignItems: 'center',
+    backgroundColor: '#0f4c5c',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    minWidth: 52,
+  },
+  lbOverallNum: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  lbOverallLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  lbSubjectGrid: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(46,72,97,0.04)',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  lbSubjectCell: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(46,72,97,0.08)',
+  },
+  lbSubjectLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#4f7187',
+    textTransform: 'uppercase',
+  },
+  lbSubjectScore: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0b2236',
+    marginTop: 1,
+  },
+  lbAutoTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15,76,92,0.08)',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 4,
+  },
+  lbAutoTotalLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f4c5c',
+  },
+  lbAutoTotalValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f4c5c',
   },
   lbModalOverlay: {
     flex: 1,

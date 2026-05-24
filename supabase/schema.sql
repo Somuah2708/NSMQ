@@ -220,6 +220,9 @@ create policy "Authenticated upload post images"
 alter table public.leaderboard_scores
   add column if not exists category text not null default 'main';
 
+alter table public.leaderboard_scores
+  add column if not exists contests int not null default 0;
+
 -- Seed the official squad roster (scores start at 0 and are updated via the admin panel).
 insert into public.leaderboard_scores
   (student, overall, physics, chemistry, biology, mathematics, gk, category)
@@ -238,3 +241,44 @@ values
   ('George Frimpong',      0, 0, 0, 0, 0, 0, 'substitute'),
   ('Clifford Anum',        0, 0, 0, 0, 0, 0, 'substitute')
 on conflict do nothing;
+
+-- Storage bucket for uploaded resource files (PDFs, images, documents, etc.).
+insert into storage.buckets (id, name, public)
+  values ('resources', 'resources', true)
+  on conflict (id) do nothing;
+
+drop policy if exists "Public read resources bucket" on storage.objects;
+create policy "Public read resources bucket"
+  on storage.objects for select
+  using (bucket_id = 'resources');
+
+drop policy if exists "Authenticated upload resources" on storage.objects;
+create policy "Authenticated upload resources"
+  on storage.objects for insert
+  with check (bucket_id = 'resources' and auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated delete own resources" on storage.objects;
+create policy "Authenticated delete own resources"
+  on storage.objects for delete
+  using (bucket_id = 'resources' and auth.uid() = owner);
+
+-- Day topic/date overrides (admin-editable per practice day).
+create table if not exists public.practice_day_overrides (
+  day_id text primary key,
+  topic text not null default '',
+  date_override text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.practice_day_overrides enable row level security;
+
+drop policy if exists "Public read day overrides" on public.practice_day_overrides;
+create policy "Public read day overrides"
+  on public.practice_day_overrides for select
+  using (true);
+
+drop policy if exists "Authenticated manage day overrides" on public.practice_day_overrides;
+create policy "Authenticated manage day overrides"
+  on public.practice_day_overrides for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
