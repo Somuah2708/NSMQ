@@ -572,7 +572,7 @@ function AppContent() {
     const loadHomePosts = async () => {
       const { data, error } = await supabase
         .from('home_posts')
-        .select('id,content,category,author,image_url,created_at')
+        .select('id,content,category,author,user_id,image_url,created_at')
         .order('created_at', { ascending: false })
         .limit(40)
 
@@ -585,6 +585,7 @@ function AppContent() {
             content: row.content,
             category: row.category,
             author: row.author,
+            userId: row.user_id ?? null,
             imageUrl: row.image_url ?? null,
             date: formatEntryDate(row.created_at),
           })),
@@ -972,6 +973,7 @@ function AppContent() {
       content: homePostForm.content.trim(),
       category: homePostForm.category,
       author: authorName,
+      userId: currentUser?.id ?? null,
       imageUrl: homePostForm.imageUri ?? null,
       date: new Date().toLocaleDateString('en-US', {
         month: 'short',
@@ -1015,6 +1017,7 @@ function AppContent() {
         content: data.content,
         category: data.category,
         author: data.author,
+        userId: currentUser?.id ?? null,
         imageUrl: data.image_url ?? null,
         date: formatEntryDate(data.created_at),
       },
@@ -1024,6 +1027,12 @@ function AppContent() {
     setIsSyncingHomePosts(false)
     setShowHomePostForm(false)
     setHomePostForm({ content: '', category: 'Announcement', imageUri: null })
+  }
+
+  const deleteHomePost = async (postId) => {
+    setHomePosts((prev) => prev.filter((p) => p.id !== postId))
+    if (!isSupabaseConfigured) return
+    await supabase.from('home_posts').delete().eq('id', postId)
   }
 
   const publishResource = async (subject) => {
@@ -1468,7 +1477,18 @@ function AppContent() {
                     <View style={styles.homePostCardBody}>
                       <View style={styles.homeItemTopRow}>
                         <Text style={styles.homePill}>{post.category}</Text>
-                        <Text style={styles.muted}>{post.date}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={styles.muted}>{post.date}</Text>
+                          {(isAdmin || (currentUser && currentUser.id === post.userId)) && (
+                            <Pressable
+                              onPress={() => deleteHomePost(post.id)}
+                              hitSlop={8}
+                              style={styles.postDeleteBtn}
+                            >
+                              <Ionicons name="trash-outline" size={15} color="#e63946" />
+                            </Pressable>
+                          )}
+                        </View>
                       </View>
                       <Text style={styles.text}>{post.content}</Text>
                       <Text style={styles.focus}>By {post.author}</Text>
@@ -3380,6 +3400,11 @@ const styles = StyleSheet.create({
   homePostCardBody: {
     padding: 10,
     gap: 5,
+  },
+  postDeleteBtn: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(230,57,70,0.08)',
   },
   postImagePreviewWrap: {
     width: '100%',
