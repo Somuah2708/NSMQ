@@ -528,7 +528,7 @@ function AppContent() {
       setIsSyncingLeaderboard(true)
       const { data, error } = await supabase
         .from('leaderboard_scores')
-        .select('student,overall,physics,chemistry,biology,mathematics,gk,category')
+        .select('student,overall,physics,chemistry,biology,mathematics,gk,contests,category')
         .order('overall', { ascending: false })
         .limit(60)
 
