@@ -18,7 +18,7 @@ import * as FileSystem from 'expo-file-system/legacy'
 import Ionicons from '@expo/vector-icons/Ionicons'
 import { isSupabaseConfigured, supabase, supabaseUrl, supabaseAnonKey } from './lib/supabase'
 
-const ADMIN_EMAILS = ['kwesisomuah2000@gmail.com']
+const ADMIN_EMAILS = ['kwesisomuah2000@gmail.com', 'baahkaakyire11@gmail.com']
 
 const navigationItems = [
   { id: 'home', label: 'Home', icon: 'home-outline', iconActive: 'home' },
